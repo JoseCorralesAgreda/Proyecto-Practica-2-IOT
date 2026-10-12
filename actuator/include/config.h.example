@@ -1,10 +1,23 @@
 #pragma once
 
-// Copy to config.h before implementing WiFi. Never commit real credentials.
-// The initial serial-only scaffold does not include this file.
+// Copy to config.h and fill in local values. Never commit real credentials.
+#include <stddef.h>
+#include <stdint.h>
 namespace config {
 constexpr char WIFI_SSID[] = "YOUR_WIFI_SSID";
 constexpr char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
 constexpr char SERVER_HOST[] = "192.0.2.1";
 constexpr unsigned short SERVER_PORT = 5000;
-}
+// Red, orange, green. Confirm active-high wiring and one 220 ohm resistor per LED.
+constexpr size_t LED_COUNT = 3;
+constexpr int LED_PINS[LED_COUNT] = {-1, -1, -1};
+constexpr bool LED_WIRING_CONFIRMED = false;
+constexpr uint32_t BLINK_PERIOD_MS = 500; // Full cycle: 250 ms on, 250 ms off.
+constexpr uint32_t COMMAND_TIMEOUT_MS = 5000;
+constexpr uint32_t RECONNECT_INTERVAL_MS = 3000;
+constexpr int32_t CONNECT_TIMEOUT_MS = 1000;
+constexpr size_t MAX_LINE_BYTES = 32; // Includes LF.
+constexpr size_t RECEIVE_BYTES_PER_LOOP = 128;
+constexpr unsigned long SERIAL_BAUD_RATE = 115200;
+constexpr unsigned long LOOP_DELAY_MS = 1;
+} // namespace config

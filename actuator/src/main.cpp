@@ -1,17 +1,23 @@
+#include "actuator_client.h"
+#include "config.h"
+#include "led_controller.h"
 #include <Arduino.h>
 
 namespace {
-constexpr unsigned long SERIAL_BAUD_RATE = 115200;
-constexpr unsigned long IDLE_DELAY_MS = 10;
-}
+LedController leds;
+ActuatorClient client(leds);
+} // namespace
 
-/** Initialize serial output for the actuator project scaffold. */
+/** Initialize outputs off and start the WiFi connection. */
 void setup() {
-    Serial.begin(SERIAL_BAUD_RATE);
-    Serial.println("Actuator project initialized.");
+    Serial.begin(config::SERIAL_BAUD_RATE);
+    leds.begin();
+    client.begin();
 }
 
-/** Yield while application behavior awaits implementation. */
+/** Service commands and local blinking, then yield to network tasks. */
 void loop() {
-    delay(IDLE_DELAY_MS);
+    client.update();
+    leds.update(millis());
+    delay(config::LOOP_DELAY_MS);
 }
