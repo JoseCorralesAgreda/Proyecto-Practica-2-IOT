@@ -27,8 +27,11 @@ python -m unittest server.test_server -v
 ```
 
 Consultar [pruebas](docs/testing.md), [arquitectura](docs/architecture.md) e [implementación](docs/implementation.md).
+El sensor implementa medición, WiFi/TCP, registro, envío periódico y reconexión. La implementación del subplan fue autorizada en la conversación. El actuador conserva el programa inicial por puerto serie y el servidor está pendiente. No se han realizado pruebas con placas.
 
 ## Compilar y cargar
+
+Antes de compilar el sensor, copiar `sensor/include/config.h.example` a `sensor/include/config.h` y completar SSID, contraseña e IPv4 del servidor. Configurar `TRIGGER_PIN`, `ECHO_PIN` y `SENSOR_WIRING_CONFIRMED = true` después de confirmar el montaje. Con los valores de ejemplo compila, pero no activa los GPIO del sensor. El archivo real está excluido de Git.
 
 Abrir `sensor/` o `actuator/` como proyecto con PlatformIO, o ejecutar desde la raíz en una terminal con `pio` disponible:
 
@@ -52,7 +55,7 @@ Si `pio` no está en el PATH, en esta máquina se puede invocar:
 & "$env:USERPROFILE/.platformio/penv/Scripts/platformio.exe" run --project-dir sensor
 ```
 
-El esqueleto compila sin credenciales. Para la implementación de red se copiará `include/config.h.example` a `include/config.h` dentro de cada proyecto y se completarán SSID, contraseña e IP del servidor. Los archivos reales están excluidos de Git.
+El actuador todavía compila sin configuración. El sensor requiere `config.h`; el ejemplo solo contiene valores ficticios. Consultar [implementación](docs/implementation.md), [protocolo](docs/protocol.md) y [pruebas](docs/testing.md).
 
 ## Hardware acordado
 

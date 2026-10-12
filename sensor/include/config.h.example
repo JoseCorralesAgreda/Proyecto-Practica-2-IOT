@@ -1,10 +1,31 @@
 #pragma once
 
-// Copy to config.h before implementing WiFi. Never commit real credentials.
-// The initial serial-only scaffold does not include this file.
+// Copy to config.h and fill in local values. Never commit real credentials.
+#include <stddef.h>
+#include <stdint.h>
+
 namespace config {
 constexpr char WIFI_SSID[] = "YOUR_WIFI_SSID";
 constexpr char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
 constexpr char SERVER_HOST[] = "192.0.2.1";
 constexpr unsigned short SERVER_PORT = 5000;
-}
+// Leave disabled until GPIO assignments and 3.3 V ECHO compatibility are verified.
+constexpr int TRIGGER_PIN = -1;
+constexpr int ECHO_PIN = -1;
+constexpr bool SENSOR_WIRING_CONFIRMED = false;
+constexpr float MIN_DISTANCE_CM = 2.0f;
+constexpr float MAX_DISTANCE_CM = 200.0f;
+constexpr float SOUND_SPEED_CM_PER_US = 0.0343f;
+constexpr unsigned long TRIGGER_LOW_US = 2;
+constexpr unsigned long TRIGGER_HIGH_US = 10;
+constexpr unsigned long ECHO_TIMEOUT_US = 30000;
+constexpr uint32_t DEFAULT_PERIOD_MS = 250;
+constexpr uint32_t MIN_PERIOD_MS = 100;
+constexpr uint32_t MAX_PERIOD_MS = 5000;
+constexpr uint32_t RECONNECT_INTERVAL_MS = 3000;
+constexpr int32_t CONNECT_TIMEOUT_MS = 1000;
+constexpr size_t MAX_LINE_BYTES = 32; // Includes LF.
+constexpr size_t RECEIVE_BYTES_PER_LOOP = 128;
+constexpr unsigned long SERIAL_BAUD_RATE = 115200;
+constexpr unsigned long LOOP_DELAY_MS = 1;
+} // namespace config

@@ -45,3 +45,39 @@ sequenceDiagram
 ```
 
 `DIST ERR` es un mensaje válido y renueva el plazo de recepción, aunque cuente como fallo de medición. Los mensajes malformados y las líneas parciales no renuevan ese plazo. Una desconexión explícita del sensor apaga el estado sin esperar el timeout.
+# Secuencia implementada del sensor
+
+El servidor representa el interlocutor definido por el protocolo; su código todavía está pendiente.
+
+```mermaid
+sequenceDiagram
+    participant U as UltrasonicSensor
+    participant C as SensorClient
+    participant W as Red WiFi
+    participant S as Servidor TCP (pendiente)
+    C->>W: Iniciar asociación
+    C->>S: Conectar TCP
+    C->>S: HELLO SENSOR LF
+    opt El servidor configura el periodo
+        S->>C: PERIOD 250 LF
+        C->>C: Validar y limitar a 100–5000 ms
+    end
+    loop Cada periodo desde el inicio de la medición anterior
+        C->>U: readDistance()
+        U->>U: TRIG y espera de ECHO acotada
+        alt Lectura válida
+            U-->>C: Distancia en cm
+            C->>S: DIST 42.5 LF
+        else Error o montaje deshabilitado
+            U-->>C: false
+            C->>S: DIST ERR LF
+        end
+    end
+    opt Pérdida de conexión detectada
+        C->>C: Cerrar socket y limpiar recepción
+        C->>S: Reintentar cada 3 s
+        C->>S: HELLO SENSOR LF
+    end
+```
+
+La secuencia completa prevista, incluido el actuador, está en [la referencia](../protocolo.md). Aún no constituye una prueba de integración.
