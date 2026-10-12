@@ -1,17 +1,22 @@
+#include "config.h"
+#include "sensor_client.h"
+#include "ultrasonic_sensor.h"
 #include <Arduino.h>
 
 namespace {
-constexpr unsigned long SERIAL_BAUD_RATE = 115200;
-constexpr unsigned long IDLE_DELAY_MS = 10;
-}
+UltrasonicSensor sensor;
+SensorClient client(sensor);
+} // namespace
 
-/** Initialize serial output for the sensor project scaffold. */
+/** Initialize measurement pins and start the WiFi connection. */
 void setup() {
-    Serial.begin(SERIAL_BAUD_RATE);
-    Serial.println("Sensor project initialized.");
+    Serial.begin(config::SERIAL_BAUD_RATE);
+    sensor.begin();
+    client.begin();
 }
 
-/** Yield while application behavior awaits implementation. */
+/** Service the sensor connection and yield to the ESP32 network tasks. */
 void loop() {
-    delay(IDLE_DELAY_MS);
+    client.update();
+    delay(config::LOOP_DELAY_MS);
 }

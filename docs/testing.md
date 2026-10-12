@@ -19,9 +19,13 @@ $env:PLATFORMIO_CORE_DIR = Join-Path (Get-Location) ".platformio-local"
 
 La variable solo afecta la sesión de terminal. No se modificó la configuración global. Esta copia permite verificar dentro del entorno restringido; no es necesaria para usar PlatformIO normalmente.
 
+## Compilación del sensor implementado — 11 de octubre de 2026
+
+Se compiló con el mismo perfil y framework, usando una copia local del ejemplo como `config.h`: credenciales ficticias y GPIO deshabilitados. Resultado: **SUCCESS**, `sensor/.pio/build/esp32dev/firmware.bin` generado, RAM estática de **44776 bytes** y flash de **743473 bytes**. Se utilizó el directorio local de PlatformIO con el comando anterior. El código se formateó con `clang-format` (base LLVM, sangría de 4 espacios).
+
 ## Alcance y pruebas pendientes
 
-La compilación verifica los programas mínimos, que únicamente inicializan Serial. No se cargó firmware en placas ni se comprobó salida serie física.
+La compilación actual verifica la construcción del firmware del sensor; no ejecuta su comportamiento. No se cargó firmware ni se comprobó salida serie física. La persona confirmó que no hay placas conectadas y solicitó continuar solo con código. No hay pruebas automatizadas de ejecución del firmware.
 
 | Verificación | Estado |
 |---|---|
@@ -61,3 +65,27 @@ Los mensajes de advertencia sobre líneas inválidas y timeout durante la suite 
 ## Procedimiento pendiente de aceptación física
 
 Con ambos firmwares implementados: medir posiciones con cinta métrica dentro de 2–200 cm, registrar lecturas repetidas y errores absolutos; comprobar cambios de rango alrededor de 50 y 100 cm; medir del cambio físico a la respuesta visible; contar lecturas por segundo y mantener el sistema al menos diez minutos. Desconectar y reconectar WiFi, sensor y servidor para registrar recuperación. Los datos y condiciones reales se incorporarán al ejecutarse estas pruebas.
+| Medición | PENDIENTE: firmware implementado, sin validación física |
+| Clasificación y actuación | PENDIENTE: componentes sin implementar |
+| Comunicación TCP y recuperación de fallas | PENDIENTE: cliente sensor implementado, sin ejecución en placa |
+| Estabilidad, exactitud, respuesta y muestreo | PENDIENTE: requieren sistema integrado y mediciones físicas |
+
+## Procedimientos reproducibles pendientes
+
+Con montaje confirmado y un servidor TCP en la IPv4 configurada, registrar los mensajes y sus tiempos de recepción. Conservar los datos sin reemplazarlos por valores esperados.
+
+| Caso | Procedimiento | Resultado esperado | Resultado obtenido |
+|---|---|---|---|
+| Registro y respaldo | Aceptar TCP sin enviar `PERIOD` | Primero `HELLO SENSOR`; después `DIST` con periodo nominal de 250 ms | PENDIENTE |
+| Fragmentación | Enviar `PER`, luego `IOD 100`, luego LF | Solo aplicar 100 ms al recibir LF | PENDIENTE |
+| Concatenación y límites | Enviar `PERIOD 000` y `PERIOD 9999` en líneas consecutivas | Limitar a 100 y luego 5000 ms | PENDIENTE |
+| Malformados | Enviar `PERIOD -100`, `PERIOD 50`, `PERIOD 1x0`, CRLF y comandos desconocidos | Mantener periodo anterior | PENDIENTE |
+| Línea larga | Enviar 32 caracteres sin LF, luego `PERIOD 100` y LF; después una línea válida | Descartar toda la primera línea; aceptar la siguiente | PENDIENTE |
+| Sin eco / fuera de rango | Retirar objetivo y comprobar referencias fuera de 2–200 cm | `DIST ERR` | PENDIENTE |
+| Exactitud RF1 | Medir referencias a 2, 10, 49, 50, 99, 100 y 200 cm; tomar 10 lecturas por posición | Error absoluto máximo ≤ 3 cm; investigar errores y lecturas inválidas | PENDIENTE |
+| Frecuencia | Enviar `PERIOD 250`; contar DIST en ventanas de 10 s durante 1 min | Al menos 20 lecturas por ventana | PENDIENTE |
+| Reconexión | Cerrar TCP y, por separado, interrumpir WiFi; restaurar conexión | Reintentos cada 3 s; nuevo HELLO y lecturas, sin fragmentos de la sesión anterior | PENDIENTE |
+| Estabilidad | Ejecutar 10 min y registrar reinicios o bloqueos | Ningún reinicio ni bloqueo | PENDIENTE |
+| Respuesta integrada | Una vez implementados servidor y actuador, medir cambio físico → LED | ≤ 1 s a 250 ms | PENDIENTE |
+
+Al disponer del hardware, completar [resultados](results.md) con las mediciones y evidencias de estos procedimientos.
