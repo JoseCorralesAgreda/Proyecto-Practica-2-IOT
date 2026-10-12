@@ -4,9 +4,29 @@ Proyectos PlatformIO independientes para dos ESP32-WROOM-32: [sensor](sensor/pla
 
 ## Estado
 
-El plan general fue aprobado en la conversación el 11 de octubre de 2026. El archivo del plan se conserva como documento de un solo uso. Se mantiene [protocolo.md](protocolo.md) sin modificaciones. Los tres subplanes están preparados para revisión.
+El plan general y la ejecución del subplan del servidor fueron aprobados en la conversación. Los planes se conservan como documentos de un solo uso. Se mantiene [protocolo.md](protocolo.md) como especificación de referencia; [docs/protocol.md](docs/protocol.md) describe su implementación actual.
 
-Los programas iniciales solo imprimen un mensaje por puerto serie a 115200 baudios. Medición, WiFi, TCP, LEDs y servidor quedan pendientes de implementación.
+El servidor TCP está implementado y probado con clientes simulados. Los programas de los ESP solo imprimen un mensaje por puerto serie a 115200 baudios; medición, WiFi, TCP y LEDs en los dispositivos quedan pendientes de sus subplanes.
+
+## Ejecutar el servidor
+
+Requiere Python 3.11 o posterior y utiliza exclusivamente la biblioteca estándar. Desde la raíz del repositorio:
+
+```powershell
+python -m server.main
+```
+
+Escucha en `0.0.0.0:5000`. Configurar en los ESP la IPv4 de la PC dentro de la misma red WiFi, permitir TCP entrante al puerto 5000 en el firewall y evitar redes que aíslen los clientes entre sí. `0.0.0.0` es la dirección de escucha, no la dirección que deben usar los ESP. Detener con Ctrl+C.
+
+Los rangos y tiempos se concentran en [server/config.py](server/config.py). El periodo nominal es 250 ms; cambiarlo por encima de 500 ms no satisface el objetivo de al menos dos lecturas por segundo. Si el puerto está ocupado, cerrar la otra instancia o configurar el mismo puerto en servidor y clientes.
+
+Para repetir las pruebas automatizadas del servidor, sin placas conectadas:
+
+```powershell
+python -m unittest server.test_server -v
+```
+
+Consultar [pruebas](docs/testing.md), [arquitectura](docs/architecture.md) e [implementación](docs/implementation.md).
 
 ## Compilar y cargar
 
