@@ -1,0 +1,10 @@
+#pragma once
+
+// Copy to config.h before implementing WiFi. Never commit real credentials.
+// The initial serial-only scaffold does not include this file.
+namespace config {
+constexpr char WIFI_SSID[] = "YOUR_WIFI_SSID";
+constexpr char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
+constexpr char SERVER_HOST[] = "192.0.2.1";
+constexpr unsigned short SERVER_PORT = 5000;
+}
