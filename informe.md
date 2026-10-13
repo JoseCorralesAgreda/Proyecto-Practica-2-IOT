@@ -87,17 +87,17 @@ Ambos objetos inician la conexión hacia el servidor y este concentra el control
 
 Detalle y esquemático: [docs/circuits.md](docs/circuits.md) y [docs/assets/circuits.html](docs/assets/circuits.html).
 
-**Objeto sensor — ESP32 + HC-SR04:** VCC → VIN (5 V), TRIG → GPIO 18, ECHO → GPIO 19 y masa común. El ECHO se conecta **directamente**, sin resistencias ni adaptación de nivel; el equipo verificó experimentalmente que no daña componentes.
+**Objeto sensor — ESP32 + HC-SR04:** VCC → VIN (5 V), TRIG → GPIO 18, ECHO → GPIO 19 y masa común. El ECHO se conecta **directamente**, sin resistores ni adaptación de nivel; el equipo verificó experimentalmente que no daña componentes.
 
 **Objeto actuador — ESP32 + 3 LED:**
 
-| LED | GPIO | Resistencia en serie |
+| LED | GPIO | Resistor en serie |
 |---|---:|---|
 | Rojo | 25 | 220 Ω |
 | Naranja | 26 | 220 Ω |
 | Verde | 27 | 220 Ω |
 
-Los LED son activos a nivel alto, cada uno con su resistencia y masa común con la placa.
+Los LED son activos a nivel alto, cada uno con su resistor y masa común con la placa.
 
 ### 2.3 Diagrama de clases
 

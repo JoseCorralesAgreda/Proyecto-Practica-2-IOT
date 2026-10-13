@@ -1,6 +1,6 @@
 # Subplan del actuador
 
-Pendiente de revisión antes de implementar. El proyecto PlatformIO inicial ya usa Arduino/C++ y `esp32dev` para ESP32-WROOM-32. Se mantiene `protocolo.md`. Se utilizará una resistencia de 220 Ω en serie con cada LED, según instrucción de la persona.
+Pendiente de revisión antes de implementar. El proyecto PlatformIO inicial ya usa Arduino/C++ y `esp32dev` para ESP32-WROOM-32. Se mantiene `protocolo.md`. Se utilizará un resistor de 220 Ω en serie con cada LED, según instrucción de la persona.
 
 ## Archivos y responsabilidades
 

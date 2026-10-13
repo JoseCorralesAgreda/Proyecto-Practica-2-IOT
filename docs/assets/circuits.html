@@ -68,7 +68,7 @@
       <!-- wire labels -->
       <text x="450" y="190" text-anchor="middle" font-size="12.5" fill="#b91c1c">VCC · 5 V</text>
       <text x="450" y="242" text-anchor="middle" font-size="12.5" fill="#b45309">TRIG ← GPIO 18</text>
-      <text x="450" y="294" text-anchor="middle" font-size="12.5" fill="#1d4ed8">ECHO → GPIO 19 · directo, sin resistencias</text>
+      <text x="450" y="294" text-anchor="middle" font-size="12.5" fill="#1d4ed8">ECHO → GPIO 19 · directo, sin resistores</text>
       <text x="450" y="346" text-anchor="middle" font-size="12.5" fill="#111827">GND común</text>
 
       <!-- HC-SR04 -->
@@ -96,21 +96,21 @@
       <!-- note -->
       <rect x="70" y="440" width="790" height="78" rx="12" fill="#f1f5f9" stroke="#cbd5e1"/>
       <text x="90" y="470" font-size="13" fill="#0f172a">El ECHO del HC-SR04 se conecta de forma directa al GPIO del ESP32.</text>
-      <text x="90" y="490" font-size="13" fill="#0f172a">El equipo verificó experimentalmente que esto no daña componentes; en esta práctica no se usan resistencias.</text>
+      <text x="90" y="490" font-size="13" fill="#0f172a">El equipo verificó experimentalmente que esto no daña componentes; en esta práctica no se usan resistores.</text>
       <text x="90" y="510" font-size="13" fill="#0f172a">El módulo se alimenta a 5 V (VIN) y comparte masa (GND) con la placa.</text>
     </svg>
     <table>
       <tr><th>Pin del HC-SR04</th><th>Se conecta a</th></tr>
       <tr><td>VCC</td><td>VIN (5 V) del ESP32</td></tr>
       <tr><td>TRIG</td><td>GPIO 18</td></tr>
-      <tr><td>ECHO</td><td>GPIO 19 (conexión directa, sin resistencias)</td></tr>
+      <tr><td>ECHO</td><td>GPIO 19 (conexión directa, sin resistores)</td></tr>
       <tr><td>GND</td><td>GND del ESP32</td></tr>
     </table>
   </div>
 
   <h2>Objeto actuador — ESP32 + 3 LED</h2>
   <div class="card">
-    <svg viewBox="0 0 920 580" role="img" aria-label="Circuito del objeto actuador: ESP32 y tres LED con resistencias de 220 ohmios">
+    <svg viewBox="0 0 920 580" role="img" aria-label="Circuito del objeto actuador: ESP32 y tres LED con resistores de 220 ohmios">
       <!-- ESP32 -->
       <rect x="70" y="120" width="240" height="330" rx="16" fill="#0f172a"/>
       <text x="190" y="158" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">ESP32-WROOM-32</text>
@@ -171,10 +171,10 @@
       <!-- note -->
       <rect x="70" y="495" width="790" height="65" rx="12" fill="#f1f5f9" stroke="#cbd5e1"/>
       <text x="90" y="522" font-size="13" fill="#0f172a">Tres LED activos a nivel alto: un GPIO en nivel alto enciende el LED correspondiente.</text>
-      <text x="90" y="542" font-size="13" fill="#0f172a">Una resistencia de 220 Ω en serie por LED y masa común con la placa.</text>
+      <text x="90" y="542" font-size="13" fill="#0f172a">Un resistor de 220 Ω en serie por LED y masa común con la placa.</text>
     </svg>
     <table>
-      <tr><th>LED</th><th>GPIO</th><th>Resistencia en serie</th><th>Conexión</th></tr>
+      <tr><th>LED</th><th>GPIO</th><th>Resistor en serie</th><th>Conexión</th></tr>
       <tr><td>Rojo</td><td>25</td><td>220 Ω</td><td>GPIO → R → ánodo; cátodo → GND</td></tr>
       <tr><td>Naranja</td><td>26</td><td>220 Ω</td><td>GPIO → R → ánodo; cátodo → GND</td></tr>
       <tr><td>Verde</td><td>27</td><td>220 Ω</td><td>GPIO → R → ánodo; cátodo → GND</td></tr>

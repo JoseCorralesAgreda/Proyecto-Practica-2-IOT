@@ -11,7 +11,7 @@ Pendiente de revisión antes de implementar. El proyecto PlatformIO inicial ya u
 
 ## Pasos
 
-1. Confirmar GPIO y compatibilidad eléctrica del sensor real antes de cablear. La persona solicita no usar resistencias en la conexión del sensor: queda pendiente confirmar una variante con ECHO compatible con 3,3 V o adaptación de nivel sin divisor resistivo. No considerar validada una conexión directa de ECHO a 5 V.
+1. Confirmar GPIO y compatibilidad eléctrica del sensor real antes de cablear. La persona solicita no usar resistoresresistores en la conexión del sensor: queda pendiente confirmar una variante con ECHO compatible con 3,3 V o adaptación de nivel sin divisor resistivo. No considerar validada una conexión directa de ECHO a 5 V.
 2. Implementar medición con timeout de eco y rango válido de 2 a 200 cm; representar lecturas inválidas como `DIST ERR`.
 3. Conectar WiFi/TCP, enviar `HELLO SENSOR`, recibir `PERIOD` y limitarlo al intervalo de 100 a 5000 ms. Usar 250 ms inicialmente.
 4. Enviar `DIST` con un decimal y LF; procesar líneas parciales y descartar líneas largas según el protocolo.

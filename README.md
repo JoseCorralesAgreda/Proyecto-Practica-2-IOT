@@ -58,6 +58,6 @@ Ambos proyectos requieren `config.h`; los ejemplos solo contienen valores fictic
 
 ## Hardware acordado
 
-Dos ESP32-WROOM-32; tres LEDs con una resistencia individual de 220 Ω. El entorno `esp32doit-devkit-v1` configura flash de 4 MB; verificar el modelo de placa portadora y puerto al cargar.
+Dos ESP32-WROOM-32; tres LEDs con un resistor individual de 220 Ω. El entorno `esp32doit-devkit-v1` configura flash de 4 MB; verificar el modelo de placa portadora y puerto al cargar.
 
-El equipo verificó experimentalmente que la conexión directa del ECHO del ultrasónico a un GPIO del ESP32 no daña componentes y es adecuada para esta práctica: el sensor **no requiere resistencias** ni adaptación de nivel. Ver el esquemático en [circuitos](docs/circuits.md).
+El equipo verificó experimentalmente que la conexión directa del ECHO del ultrasónico a un GPIO del ESP32 no daña componentes y es adecuada para esta práctica: el sensor **no requiere resistores** ni adaptación de nivel. Ver el esquemático en [circuitos](docs/circuits.md).
