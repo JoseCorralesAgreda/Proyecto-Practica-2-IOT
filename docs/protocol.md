@@ -1,50 +1,74 @@
-# Protocolo implementado por el servidor
+# Protocolo de aplicación
 
-La especificación de referencia se conserva en [protocolo.md](../protocolo.md). Esta sección describe el comportamiento del servidor actual y las precisiones del plan general aprobado.
+Especificación de referencia del grupo: [protocolo.md](../protocolo.md). Este documento describe el protocolo **tal como lo implementan** el servidor y ambos firmware, con las precisiones acordadas en el plan general. Los tres componentes son coherentes entre sí.
 
-## Formato y mensajes
+## Formato general
 
-TCP persistente, ASCII estricto, separador de un espacio y terminador LF (`\n`). Límite de 32 bytes incluyendo LF: hasta 31 bytes de contenido. Se ignora una línea excesiva completa hasta LF; la siguiente línea se procesa normalmente. Se reconstruyen mensajes fragmentados y se separan mensajes concatenados. CRLF no forma parte de la gramática.
+- Texto ASCII sobre TCP persistente, un mensaje por línea terminada en LF (`\n`).
+- Forma general `COMANDO [argumento]`, con un único espacio separador.
+- Longitud máxima de línea: 32 bytes incluido LF (hasta 31 bytes de contenido). Una línea que alcanza el límite se descarta completa hasta el siguiente LF; la línea siguiente se procesa normalmente.
+- TCP no conserva los límites de mensaje: el LF es el delimitador. Se reconstruyen mensajes fragmentados y se separan los concatenados.
+- CRLF no forma parte de la gramática. Las líneas desconocidas o malformadas se ignoran y se registran; un `HELLO` con un rol distinto de `SENSOR` o `ACTUATOR` cierra la conexión.
 
-| Dirección | Mensaje | Validación / respuesta |
+## Mensajes
+
+| Dirección | Mensaje | Argumento | Ejemplo |
+|---|---|---|---|
+| ESP → servidor | `HELLO` | Rol: `SENSOR` o `ACTUATOR` | `HELLO SENSOR` |
+| Sensor → servidor | `DIST` | Distancia en cm con un decimal, o `ERR` | `DIST 42.5` / `DIST ERR` |
+| Servidor → sensor | `PERIOD` | Periodo de medición en ms (100–5000) | `PERIOD 250` |
+| Servidor → actuador | `LED` | Tres estados, uno por LED (rojo, naranja, verde) | `LED B00` |
+
+Estados de cada LED:
+
+| Carácter | Significado |
+|---|---|
+| `0` | Apagado |
+| `S` | Encendido fijo (*solid*) |
+| `B` | Parpadeando (*blink*) |
+
+Ejemplos: `LED B00` rojo parpadeando · `LED 0B0` naranja parpadeando · `LED 00S` verde fijo · `LED 000` todos apagados.
+
+Gramática resumida:
+
+```text
+mensaje = hello / dist / period / led
+hello   = "HELLO" SP ( "SENSOR" / "ACTUATOR" ) LF
+dist    = "DIST" SP ( 1*3DIGIT "." DIGIT / "ERR" ) LF
+period  = "PERIOD" SP 3*4DIGIT LF
+led     = "LED" SP 3estado LF
+estado  = "0" / "S" / "B"
+```
+
+## Reglas de comportamiento
+
+1. Cada cliente abre la conexión TCP y envía `HELLO` con su rol. Un rol inválido cierra el socket.
+2. Tras `HELLO SENSOR` el servidor responde `PERIOD` con el periodo configurado (250 ms por defecto). Tras `HELLO ACTUATOR` envía el `LED` del patrón vigente.
+3. Si ya existe un cliente registrado con ese rol, el servidor cierra el anterior y conserva el nuevo; el cierre del anterior no elimina el registro nuevo. Repetir `HELLO` del mismo rol en el mismo socket devuelve la respuesta y no prolonga el timeout del sensor.
+4. Solo el socket registrado como `SENSOR` puede enviar `DIST`. El sensor envía una lectura cada `PERIOD`; si la medición falla o queda fuera de 2–200 cm, envía `DIST ERR`.
+5. El servidor clasifica y envía `LED` al actuador cuando el patrón cambia y, además, como refresco cada 1 s.
+6. El sensor limita el `PERIOD` recibido al intervalo 100–5000 ms y lo aplica en la siguiente comprobación; sin `PERIOD` usa 250 ms. Un valor como `PERIOD 50` (2 dígitos) se ignora por gramática.
+7. El actuador genera el parpadeo localmente con un ciclo de 500 ms (250 ms encendido y 250 ms apagado); los refrescos del mismo patrón no reinician el parpadeo.
+8. Un cliente que pierde WiFi o TCP apaga sus salidas, cierra el socket y reintenta cada 3 s, repitiendo el `HELLO`. Una nueva sesión del sensor vuelve al periodo inicial de 250 ms.
+
+## Tiempos
+
+| Parámetro | Valor | Aplica en |
 |---|---|---|
-| Cliente → servidor | `HELLO SENSOR\n` | Registra sensor; responde `PERIOD 250\n` por defecto |
-| Cliente → servidor | `HELLO ACTUATOR\n` | Registra actuador; responde `LED` con el patrón actual |
-| Sensor → servidor | `DIST 42.5\n` | De uno a tres dígitos, punto y exactamente un decimal |
-| Sensor → servidor | `DIST ERR\n` | Lectura inválida, contabilizada sin cerrar la conexión |
-| Servidor → sensor | `PERIOD 250\n` | Periodo configurado de 100 a 5000 ms |
-| Servidor → actuador | `LED B00\n` | Tres estados en orden rojo, naranja y verde: `0`, `S`, `B` |
+| `PERIOD` por defecto | 250 ms | Servidor (lo envía) y sensor (respaldo) |
+| Rango de `PERIOD` | 100–5000 ms | Servidor y sensor |
+| Timeout de silencio del sensor | `max(2 s, 3 × PERIOD)` | Servidor |
+| Errores `DIST ERR` consecutivos tolerados | 2 (al tercero `000`) | Servidor |
+| Refresco de `LED` | 1 s | Servidor |
+| Timeout de silencio del servidor | 5 s | Actuador |
+| Ciclo de parpadeo | 500 ms | Actuador |
+| Reintento de conexión | 3 s | Ambos ESP32 |
+| Timeout de conexión TCP | 1 s | Ambos ESP32 |
+| Timeout de escritura del servidor | 1 s | Servidor |
+| Revisión de plazos del servidor | 50 ms | Servidor |
 
-La gramática se valida completa. Valores como `nan`, enteros sin decimal, negativos y espacios adicionales se ignoran y registran en el log. Los valores numéricos sintácticamente válidos fuera de 2 a 200 cm se contabilizan como lecturas inválidas. El formato `DIST ERR` debe ser usado por el futuro firmware para esos casos.
+## Validación por componente
 
-## Registro y control
-
-- Sin registro no se aceptan distancias. El actuador tampoco puede enviar mediciones ni cambiar de rol dentro del mismo socket.
-- Un `HELLO` con un único argumento de rol inválido cierra el socket, según la regla específica de registro. Otras líneas malformadas se ignoran sin respuesta.
-- Un nuevo socket del mismo rol reemplaza al anterior. La limpieza del anterior no elimina el nuevo. Se conserva el patrón al reemplazar el sensor hasta recibir nuevas lecturas o cumplirse su timeout.
-- Repetir `HELLO` del mismo rol en el mismo socket devuelve la respuesta correspondiente; no prolonga el timeout del sensor.
-- Dos lecturas inválidas consecutivas conservan el patrón; la tercera produce `000`. Una lectura válida reinicia el contador.
-- Se envía `LED` cuando cambia el patrón y como refresco cada segundo. El actuador recibe el estado actual al registrarse, aunque antes no estuviera conectado.
-- Desconexión explícita o silencio del sensor durante `max(2 s, 3 × PERIOD)` produce apagado y cierre del socket. Se admiten nuevos registros después de la falla.
-
-## Tiempos y alcance
-
-El periodo inicial es 250 ms. El servidor revisa los plazos con reloj monotónico cada 50 ms; la planificación del sistema y las escrituras pueden añadir demora. Una escritura bloqueada se limita a 1 s antes de cerrar esa conexión.
-
-El parpadeo de 500 ms, el timeout de 5 s del actuador, la limitación de `PERIOD` y los reintentos cada 3 s corresponden a los firmwares pendientes. El servidor emite el periodo configurado y rechaza su propia configuración si sale de 100 a 5000 ms. No se agregaron comandos al protocolo.
-# Protocolo implementado en el sensor
-
-Referencia del sistema: [protocolo.md](../protocolo.md), conservado sin cambios. Esta sección describe únicamente el cliente sensor implementado.
-
-| Sentido | Formato con terminador | Comportamiento |
-|---|---|---|
-| Sensor → servidor | `HELLO SENSOR\n` | Primer mensaje en cada conexión TCP |
-| Servidor → sensor | `PERIOD 250\n` | Un espacio y 3–4 dígitos; valor limitado a 100–5000 ms |
-| Sensor → servidor | `DIST 42.5\n` | Centímetros con un decimal; rango físico válido de 2 a 200 cm |
-| Sensor → servidor | `DIST ERR\n` | Sin eco, fuera de rango o configuración de hardware sin confirmar |
-
-ASCII sobre TCP persistente al puerto configurable 5000. Se utiliza IPv4 literal. El periodo inicial y de respaldo de cada sesión es 250 ms; no hay ACK de lectura.
-
-El buffer admite 31 bytes de contenido más LF, siguiendo el cómputo de bytes de los ejemplos de la referencia. Ningún `PERIOD` válido alcanza ese límite. Las líneas más largas se descartan completas hasta LF; los fragmentos permanecen entre iteraciones. Líneas desconocidas, vacías, con CR, signos, caracteres no numéricos, bytes nulos, espacios adicionales o cantidad incorrecta de dígitos se ignoran. Por ejemplo, `PERIOD 000` se limita a 100 y `PERIOD 9999` a 5000; `PERIOD 50` se ignora por no cumplir la gramática de 3–4 dígitos.
-
-Una pérdida detectada de WiFi o TCP inicia recuperación; el reintento se programa cada 3 s y repite `HELLO`. Los envíos incompletos cierran el socket. El estado del parser se limpia entre sesiones. El cliente no clasifica distancias ni controla actuadores.
+- **Servidor:** valida la gramática completa; los valores numéricos fuera de 2–200 cm y los no finitos cuentan como lectura inválida. Una escritura bloqueada se limita a 1 s antes de cerrar la conexión afectada.
+- **Sensor:** valida `PERIOD` con 3 o 4 dígitos y lo limita a 100–5000 ms; descarta líneas desconocidas, vacías, con CR, signos, bytes nulos o espacios extra. Un envío incompleto cierra la conexión.
+- **Actuador:** exige una línea exacta `LED` con tres caracteres de estado válidos; cualquier otra se ignora. La recepción por iteración se acota para que el tráfico malformado no retrase el watchdog ni el parpadeo.

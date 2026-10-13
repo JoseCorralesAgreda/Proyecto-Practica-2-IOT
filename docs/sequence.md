@@ -1,83 +1,74 @@
-# Secuencias del servidor
+# Diagramas de secuencia
 
-Intercambio implementado y probado con clientes simulados. El parpadeo físico del actuador queda pendiente.
+El servidor intercambia mensajes con ambos clientes. La operación del servidor está
 
-```mermaid
-sequenceDiagram
-    participant S as Cliente sensor
-    participant T as TcpServer
-    participant C as DistanceController
-    participant A as Cliente actuador
-    A->>T: TCP connect + HELLO ACTUATOR LF
-    T->>A: LED 000 LF
-    S->>T: TCP connect + HELLO SENSOR LF
-    T->>S: PERIOD 250 LF
-    S->>T: DIST 42.5 LF
-    T->>C: update(42.5)
-    C-->>T: B00
-    T->>A: LED B00 LF
-    Note over T,A: Refresco cada 1 s aunque no cambie el patrón
-    S->>T: DIST ERR LF (primero y segundo)
-    Note over C: Conserva B00
-    S->>T: DIST ERR LF (tercero)
-    T->>C: update(None)
-    C-->>T: 000
-    T->>A: LED 000 LF
-```
+**verificada con clientes simulados** por TCP en loopback y con el prototipo físico integrado.
+
+## Operación normal
 
 ```mermaid
 sequenceDiagram
-    participant Old as Sensor anterior
-    participant New as Sensor nuevo
-    participant T as TcpServer
-    participant A as Actuador
-    New->>T: TCP connect + HELLO SENSOR LF
-    T->>T: Asociar SENSOR al socket nuevo
-    T-->>Old: Cerrar socket anterior
-    T->>New: PERIOD 250 LF
-    Note over T: La limpieza del socket anterior conserva el registro nuevo
-    New->>T: DIST 150.0 LF
-    T->>A: LED 00S LF
-    Note over New,T: Sin DIST válido durante max(2 s, 3 × PERIOD)
-    T-->>New: Cerrar socket
-    T->>T: Reiniciar control
-    T->>A: LED 000 LF
-```
+    autonumber
+    participant S as Sensor (ESP32)
+    participant SRV as Servidor (PC)
+    participant A as Actuador (ESP32)
 
-`DIST ERR` es un mensaje válido y renueva el plazo de recepción, aunque cuente como fallo de medición. Los mensajes malformados y las líneas parciales no renuevan ese plazo. Una desconexión explícita del sensor apaga el estado sin esperar el timeout.
-# Secuencia implementada del sensor
+    Note over S,A: Fase 1 — registro
+    A->>SRV: connect (TCP)
+    A->>SRV: HELLO ACTUATOR
+    SRV->>A: LED 000
+    S->>SRV: connect (TCP)
+    S->>SRV: HELLO SENSOR
+    SRV->>S: PERIOD 250
 
-El servidor representa el interlocutor definido por el protocolo; su código todavía está pendiente.
-
-```mermaid
-sequenceDiagram
-    participant U as UltrasonicSensor
-    participant C as SensorClient
-    participant W as Red WiFi
-    participant S as Servidor TCP (pendiente)
-    C->>W: Iniciar asociación
-    C->>S: Conectar TCP
-    C->>S: HELLO SENSOR LF
-    opt El servidor configura el periodo
-        S->>C: PERIOD 250 LF
-        C->>C: Validar y limitar a 100–5000 ms
-    end
-    loop Cada periodo desde el inicio de la medición anterior
-        C->>U: readDistance()
-        U->>U: TRIG y espera de ECHO acotada
-        alt Lectura válida
-            U-->>C: Distancia en cm
-            C->>S: DIST 42.5 LF
-        else Error o montaje deshabilitado
-            U-->>C: false
-            C->>S: DIST ERR LF
+    Note over S,A: Fase 2 — operación
+    loop cada PERIOD ms
+        S->>SRV: DIST 42.5
+        SRV->>SRV: clasificar → cerca
+        opt el patrón cambió
+            SRV->>A: LED B00
         end
     end
-    opt Pérdida de conexión detectada
-        C->>C: Cerrar socket y limpiar recepción
-        C->>S: Reintentar cada 3 s
-        C->>S: HELLO SENSOR LF
+    loop cada 1 s
+        SRV->>A: LED B00 (refresco)
     end
+    Note over A: parpadeo local, ciclo de 500 ms
 ```
 
-La secuencia completa prevista, incluido el actuador, está en [la referencia](../protocolo.md). Aún no constituye una prueba de integración.
+## Errores y pérdida de conexión
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant S as Sensor (ESP32)
+    participant SRV as Servidor (PC)
+    participant A as Actuador (ESP32)
+
+    Note over S,SRV: Errores de medición
+    S->>SRV: DIST ERR (1.º y 2.º)
+    Note over SRV: conserva el patrón
+    S->>SRV: DIST ERR (3.º)
+    SRV->>A: LED 000
+
+    Note over S,SRV: Pérdida del sensor
+    S--xSRV: deja de enviar DIST
+    Note over SRV: silencio ≥ max(2 s, 3 × PERIOD)
+    SRV->>SRV: cierra el socket y reinicia el control
+    SRV->>A: LED 000
+    S->>SRV: connect + HELLO SENSOR (cada 3 s)
+    SRV->>S: PERIOD 250
+
+    Note over SRV,A: Pérdida del servidor o de la red del actuador
+    SRV--xA: deja de enviar LED
+    Note over A: 5 s sin órdenes válidas
+    A->>A: apaga los LED y cierra el socket
+    A->>SRV: connect + HELLO ACTUATOR (cada 3 s)
+    SRV->>A: LED (patrón actual)
+```
+
+## Notas de comportamiento
+
+- `DIST ERR` es un mensaje válido y renueva el plazo de recepción del sensor, aunque cuente como fallo de medición. Los mensajes malformados y las líneas parciales no renuevan ese plazo.
+- Una desconexión explícita del sensor apaga el estado sin esperar el timeout.
+- Un actuador que se registra recibe de inmediato el patrón vigente, aunque antes no estuviera conectado.
+- La secuencia completa prevista del sistema, incluida la variante con servomotor, se conserva en [protocolo.md](../protocolo.md).

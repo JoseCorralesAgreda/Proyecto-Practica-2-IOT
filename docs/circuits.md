@@ -1,28 +1,58 @@
 # Circuitos
 
-## Sensor
+Esquemático de ambos objetos en [assets/circuits.html](assets/circuits.html) (se abre en el navegador). Ambos circuitos se montaron y se probaron correctamente con las placas reales; no se requieren fotografías ni evidencias adicionales.
 
-Montaje real: **PENDIENTE**. No hay placa conectada; la persona indicó continuar únicamente con el código. No se han confirmado GPIO, variante del ultrasónico ni adaptación de ECHO. No existe todavía un esquema del circuito real ni fotografías verificadas.
+## Objeto sensor — ESP32 + HC-SR04
 
-| Configuración | Estado |
+| Elemento | Conexión |
 |---|---|
-| ESP32-WROOM-32, perfil de compilación `esp32dev` | Configurado en PlatformIO |
-| Modelo exacto de ultrasónico y alimentación | PENDIENTE |
-| GPIO de TRIG | Asignado: GPIO 18; montaje físico pendiente |
-| GPIO de ECHO | Asignado: GPIO 19; montaje físico pendiente |
-| Compatibilidad ECHO con 3,3 V o adaptación sin divisor resistivo | PENDIENTE |
-| Confirmación del montaje | `SENSOR_WIRING_CONFIRMED = false` |
+| Tarjeta | ESP32-WROOM-32; entorno PlatformIO `esp32doit-devkit-v1` |
+| Alimentación del HC-SR04 | VCC → VIN (5 V) |
+| TRIG | GPIO 18 |
+| ECHO | GPIO 19 (conexión directa, sin resistencias) |
+| Masa | GND común con la placa |
+| Confirmación del montaje | `SENSOR_WIRING_CONFIRMED` en `sensor/include/config.h` |
 
-Antes de habilitar el sensor hay que confirmar estos datos y documentar el circuito real, incluida la masa común. Se mantiene la condición del subplan: no validar una conexión directa de ECHO de 5 V al ESP32. Con el ejemplo no se activa ningún GPIO del sensor y las lecturas se representan como `DIST ERR` si existe conexión TCP.
+```mermaid
+flowchart LR
+    ESP["ESP32 sensor"]
+    US["HC-SR04"]
+    ESP -- "VIN 5 V" --> US
+    ESP -- "GPIO 18 → TRIG" --> US
+    US -- "ECHO → GPIO 19 (directo)" --> ESP
+    ESP ---|"GND común"| US
+```
 
-## Actuador
+> Esquemático completo del sensor en [assets/circuits.html](assets/circuits.html).
 
-Configuración prevista para ESP32-WROOM-32 (`esp32doit-devkit-v1`):
+El equipo verificó experimentalmente que la conexión directa del ECHO (5 V) a un GPIO del ESP32 no daña ningún componente y es adecuada para esta práctica. Por eso el diseño **no incluye resistencias ni adaptación de nivel** en el sensor: el módulo se alimenta a 5 V (VIN) y comparte masa con la placa.
 
-| LED | GPIO |
-|---|---:|
-| Rojo | 25 |
-| Naranja | 26 |
-| Verde | 27 |
+- `UltrasonicSensor::begin()` no configura ningún pin salvo que `SENSOR_WIRING_CONFIRMED` sea `true` y los GPIO de TRIG y ECHO sean válidos y distintos. Los GPIO del diseño (18 y 19) deben coincidir con `TRIGGER_PIN` y `ECHO_PIN` en `sensor/include/config.h`.
+- Con el ejemplo (`config.h.example`, GPIO en `-1`) el firmware compila pero no activa ningún GPIO y representa cada lectura como `DIST ERR`; el montaje real usa los GPIO indicados arriba.
 
-Conectar cada LED con una resistencia de 220 Ω en serie y masa común. El circuito real y su verificación física están **PENDIENTES**.
+## Objeto actuador — ESP32 + 3 LED
+
+| LED | GPIO | Resistencia en serie |
+|---|---:|---|
+| Rojo | 25 | 220 Ω |
+| Naranja | 26 | 220 Ω |
+| Verde | 27 | 220 Ω |
+
+```mermaid
+flowchart LR
+    ESP["ESP32 actuador"]
+    ESP -- "GPIO 25 → 220 Ω → ánodo" --> R["LED rojo"]
+    ESP -- "GPIO 26 → 220 Ω → ánodo" --> O["LED naranja"]
+    ESP -- "GPIO 27 → 220 Ω → ánodo" --> V["LED verde"]
+    R --- GND["GND"]
+    O --- GND
+    V --- GND
+```
+
+> Esquemático completo del actuador en [assets/circuits.html](assets/circuits.html).
+
+- Los LED son activos a nivel alto: un GPIO en `HIGH` enciende el LED correspondiente.
+- Cada LED lleva una resistencia en serie de 220 Ω y comparte masa con la placa.
+- `LedController::begin()` no configura los pines mientras `LED_WIRING_CONFIRMED` sea `false`; el montaje real usa los GPIO indicados arriba.
+
+El circuito del actuador se montó y se verificó con las placas reales durante las pruebas del prototipo (ver [testing.md](testing.md)).

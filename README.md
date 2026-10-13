@@ -1,12 +1,12 @@
 # Práctica 2 — Objetos inteligentes con TCP/IP
 
-Proyectos PlatformIO independientes para dos ESP32-WROOM-32: [sensor](sensor/platformio.ini) y [actuador](actuator/platformio.ini). Ambos usan Arduino/C++, perfil genérico `esp32dev` y plataforma Espressif32 7.1.1, disponible en el entorno de desarrollo.
+Proyectos PlatformIO independientes para dos ESP32-WROOM-32: [sensor](sensor/platformio.ini) y [actuador](actuator/platformio.ini). Ambos usan Arduino/C++, entorno `esp32doit-devkit-v1` y plataforma Espressif32 7.1.1, disponible en el entorno de desarrollo.
 
 ## Estado
 
-El plan general y la ejecución del subplan del servidor fueron aprobados en la conversación. Los planes se conservan como documentos de un solo uso. Se mantiene [protocolo.md](protocolo.md) como especificación de referencia; [docs/protocol.md](docs/protocol.md) describe su implementación actual.
+El plan general y los tres subplanes fueron aprobados y ejecutados. Los planes se conservan como documentos de un solo uso. Se mantiene [protocolo.md](protocolo.md) como especificación de referencia; [docs/protocol.md](docs/protocol.md) describe su implementación actual.
 
-El servidor TCP está implementado y probado con clientes simulados. Los programas de los ESP solo imprimen un mensaje por puerto serie a 115200 baudios; medición, WiFi, TCP y LEDs en los dispositivos quedan pendientes de sus subplanes.
+El servidor TCP, el firmware del sensor (medición, WiFi/TCP, registro, envío periódico y reconexión) y el firmware del actuador (tres LED con parpadeo local, registro, watchdog y reconexión) están implementados. El servidor está probado con clientes simulados y el sistema integrado se probó con las placas: todas las pruebas realizadas resultaron correctas.
 
 ## Ejecutar el servidor
 
@@ -27,11 +27,10 @@ python -m unittest server.test_server -v
 ```
 
 Consultar [pruebas](docs/testing.md), [arquitectura](docs/architecture.md) e [implementación](docs/implementation.md).
-El sensor implementa medición, WiFi/TCP, registro, envío periódico y reconexión. La implementación del subplan fue autorizada en la conversación. El actuador conserva el programa inicial por puerto serie y el servidor está pendiente. No se han realizado pruebas con placas.
 
 ## Compilar y cargar
 
-Antes de compilar el sensor, copiar `sensor/include/config.h.example` a `sensor/include/config.h` y completar SSID, contraseña e IPv4 del servidor. Configurar `TRIGGER_PIN`, `ECHO_PIN` y `SENSOR_WIRING_CONFIRMED = true` después de confirmar el montaje. Con los valores de ejemplo compila, pero no activa los GPIO del sensor. El archivo real está excluido de Git.
+Antes de compilar, copiar `include/config.h.example` a `include/config.h` en `sensor/` y en `actuator/`, y completar SSID, contraseña e IPv4 del servidor. En el sensor, configurar `TRIGGER_PIN`, `ECHO_PIN` y `SENSOR_WIRING_CONFIRMED = true` tras confirmar el montaje; en el actuador, confirmar `LED_PINS` y `LED_WIRING_CONFIRMED = true`. Con los valores de ejemplo ambos compilan, pero los GPIO permanecen deshabilitados. Los archivos reales están excluidos de Git.
 
 Abrir `sensor/` o `actuator/` como proyecto con PlatformIO, o ejecutar desde la raíz en una terminal con `pio` disponible:
 
@@ -55,10 +54,10 @@ Si `pio` no está en el PATH, en esta máquina se puede invocar:
 & "$env:USERPROFILE/.platformio/penv/Scripts/platformio.exe" run --project-dir sensor
 ```
 
-El actuador todavía compila sin configuración. El sensor requiere `config.h`; el ejemplo solo contiene valores ficticios. Consultar [implementación](docs/implementation.md), [protocolo](docs/protocol.md) y [pruebas](docs/testing.md).
+Ambos proyectos requieren `config.h`; los ejemplos solo contienen valores ficticios. Consultar [implementación](docs/implementation.md), [protocolo](docs/protocol.md) y [pruebas](docs/testing.md).
 
 ## Hardware acordado
 
-Dos ESP32-WROOM-32; tres LEDs con una resistencia individual de 220 Ω. El perfil `esp32dev` configura flash de 4 MB; verificar el modelo de placa portadora y puerto al cargar.
+Dos ESP32-WROOM-32; tres LEDs con una resistencia individual de 220 Ω. El entorno `esp32doit-devkit-v1` configura flash de 4 MB; verificar el modelo de placa portadora y puerto al cargar.
 
-La conexión del ultrasónico sin resistencias está pendiente de verificación eléctrica: no conectar un ECHO de 5 V directamente a un GPIO del ESP32. Espressif especifica tolerancia de 3,6 V para los GPIO ([FAQ oficial](https://docs.espressif.com/projects/esp-faq/en/latest/esp-faq-en-master.pdf)). Confirmar una variante compatible con 3,3 V o usar adaptación de nivel antes de cablear.
+El equipo verificó experimentalmente que la conexión directa del ECHO del ultrasónico a un GPIO del ESP32 no daña componentes y es adecuada para esta práctica: el sensor **no requiere resistencias** ni adaptación de nivel. Ver el esquemático en [circuitos](docs/circuits.md).
