@@ -2,6 +2,19 @@
 
 #include <cstring>
 
+namespace {
+const char *ledStateName(char state) {
+    switch (state) {
+    case 'S':
+        return "on";
+    case 'B':
+        return "blinking";
+    default:
+        return "off";
+    }
+}
+} // namespace
+
 ActuatorClient::ActuatorClient(LedController &leds) : leds_(leds) {}
 
 void ActuatorClient::begin() {
@@ -13,6 +26,7 @@ void ActuatorClient::begin() {
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(false);
+    Serial.println("Connecting to WiFi...");
     WiFi.begin(config::WIFI_SSID, config::WIFI_PASSWORD);
     lastWifiAttemptMs_ = millis();
 }
@@ -23,6 +37,7 @@ void ActuatorClient::disconnect() {
     registered_ = false;
     lineLength_ = 0;
     discardLine_ = false;
+    hasCommand_ = false;
     lastTcpAttemptMs_ = millis();
 }
 
@@ -30,15 +45,25 @@ void ActuatorClient::applyCommand() {
     constexpr size_t PREFIX_LENGTH = sizeof("LED ") - 1;
     if (lineLength_ != PREFIX_LENGTH + config::LED_COUNT ||
         memcmp(line_, "LED ", PREFIX_LENGTH) != 0) {
+        Serial.println("Ignored invalid LED command.");
         return;
     }
     for (size_t i = PREFIX_LENGTH; i < lineLength_; ++i) {
         if (line_[i] != '0' && line_[i] != 'S' && line_[i] != 'B') {
+            Serial.println("Ignored invalid LED command.");
             return;
         }
     }
     lastCommandMs_ = millis();
     leds_.setPattern(line_ + PREFIX_LENGTH, lastCommandMs_);
+    if (!hasCommand_ || memcmp(lastPattern_, line_ + PREFIX_LENGTH, config::LED_COUNT) != 0) {
+        memcpy(lastPattern_, line_ + PREFIX_LENGTH, config::LED_COUNT);
+        lastPattern_[config::LED_COUNT] = '\0';
+        hasCommand_ = true;
+        Serial.printf("LED pattern received: red=%s, orange=%s, green=%s.\n",
+                      ledStateName(lastPattern_[0]), ledStateName(lastPattern_[1]),
+                      ledStateName(lastPattern_[2]));
+    }
 }
 
 void ActuatorClient::receiveCommands() {
@@ -74,6 +99,7 @@ void ActuatorClient::update() {
         }
         if (now - lastWifiAttemptMs_ >= config::RECONNECT_INTERVAL_MS) {
             lastWifiAttemptMs_ = now;
+            Serial.println("WiFi unavailable; retrying connection.");
             WiFi.disconnect();
             WiFi.begin(config::WIFI_SSID, config::WIFI_PASSWORD);
         }
@@ -82,13 +108,14 @@ void ActuatorClient::update() {
     if (!wifiConnected_) {
         wifiConnected_ = true;
         lastTcpAttemptMs_ = now - config::RECONNECT_INTERVAL_MS;
-        Serial.println("WiFi connected.");
+        Serial.printf("WiFi connected. IP: %s\n", WiFi.localIP().toString().c_str());
     }
     if (!serverAddressValid_) {
         return;
     }
     if (!socket_.connected()) {
         if (registered_) {
+            Serial.println("TCP connection lost; reconnect scheduled.");
             disconnect();
             return;
         }
@@ -99,6 +126,7 @@ void ActuatorClient::update() {
             socket_.connect(serverAddress_, config::SERVER_PORT, config::CONNECT_TIMEOUT_MS);
         lastTcpAttemptMs_ = millis();
         if (!connected) {
+            Serial.println("TCP connection to server failed; retry scheduled.");
             return;
         }
         socket_.setNoDelay(true);

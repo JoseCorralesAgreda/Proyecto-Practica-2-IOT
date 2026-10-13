@@ -27,6 +27,7 @@ void LedController::begin() {
     }
     ready_ = true;
     turnOff();
+    Serial.println("LED outputs ready; all LEDs off.");
 }
 
 void LedController::setPattern(const char *pattern, uint32_t now) {

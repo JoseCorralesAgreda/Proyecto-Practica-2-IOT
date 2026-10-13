@@ -11,6 +11,7 @@ ActuatorClient client(leds);
 /** Initialize outputs off and start the WiFi connection. */
 void setup() {
     Serial.begin(config::SERIAL_BAUD_RATE);
+    Serial.println("\nActuator starting.");
     leds.begin();
     client.begin();
 }

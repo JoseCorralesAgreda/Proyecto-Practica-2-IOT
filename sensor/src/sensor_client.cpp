@@ -13,6 +13,7 @@ void SensorClient::begin() {
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(false);
+    Serial.println("Connecting to WiFi...");
     WiFi.begin(config::WIFI_SSID, config::WIFI_PASSWORD);
     lastWifiAttemptMs_ = millis();
 }
@@ -85,6 +86,7 @@ void SensorClient::update() {
         }
         if (now - lastWifiAttemptMs_ >= config::RECONNECT_INTERVAL_MS) {
             lastWifiAttemptMs_ = now;
+            Serial.println("WiFi unavailable; retrying connection.");
             WiFi.disconnect();
             WiFi.begin(config::WIFI_SSID, config::WIFI_PASSWORD);
         }
@@ -93,13 +95,14 @@ void SensorClient::update() {
     if (!wifiConnected_) {
         wifiConnected_ = true;
         lastTcpAttemptMs_ = now - config::RECONNECT_INTERVAL_MS;
-        Serial.println("WiFi connected.");
+        Serial.printf("WiFi connected. IP: %s\n", WiFi.localIP().toString().c_str());
     }
     if (!serverAddressValid_) {
         return;
     }
     if (!socket_.connected()) {
         if (registered_) {
+            Serial.println("TCP connection lost; reconnect scheduled.");
             disconnect();
             return;
         }
@@ -110,6 +113,7 @@ void SensorClient::update() {
             socket_.connect(serverAddress_, config::SERVER_PORT, config::CONNECT_TIMEOUT_MS);
         lastTcpAttemptMs_ = millis();
         if (!connected) {
+            Serial.println("TCP connection to server failed; retry scheduled.");
             return;
         }
         socket_.setNoDelay(true);
@@ -130,9 +134,14 @@ void SensorClient::update() {
         char message[config::MAX_LINE_BYTES];
         if (sensor_.readDistance(distanceCm)) {
             snprintf(message, sizeof(message), "DIST %.1f\n", distanceCm);
+            if (sendLine(message)) {
+                Serial.printf("Distance: %.1f cm sent to server.\n", distanceCm);
+            }
         } else {
             snprintf(message, sizeof(message), "DIST ERR\n");
+            if (sendLine(message)) {
+                Serial.println("Invalid distance reading; DIST ERR sent to server.");
+            }
         }
-        sendLine(message);
     }
 }

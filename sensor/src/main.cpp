@@ -11,6 +11,7 @@ SensorClient client(sensor);
 /** Initialize measurement pins and start the WiFi connection. */
 void setup() {
     Serial.begin(config::SERIAL_BAUD_RATE);
+    Serial.println("\nSensor starting.");
     sensor.begin();
     client.begin();
 }

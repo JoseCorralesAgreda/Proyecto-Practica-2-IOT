@@ -14,6 +14,8 @@ void UltrasonicSensor::begin() {
     pinMode(config::TRIGGER_PIN, OUTPUT);
     digitalWrite(config::TRIGGER_PIN, LOW);
     pinMode(config::ECHO_PIN, INPUT);
+    Serial.printf("Ultrasonic sensor ready (TRIG=%d, ECHO=%d).\n", config::TRIGGER_PIN,
+                  config::ECHO_PIN);
 }
 
 bool UltrasonicSensor::readDistance(float &distanceCm) {

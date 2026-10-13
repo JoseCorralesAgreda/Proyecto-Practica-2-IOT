@@ -9,9 +9,9 @@ Se crearon dos proyectos independientes para ESP32-WROOM-32 con Arduino/C++ y Pl
 | Sensor | [platformio.ini](../sensor/platformio.ini) | [main.cpp](../sensor/src/main.cpp) |
 | Actuador | [platformio.ini](../actuator/platformio.ini) | [main.cpp](../actuator/src/main.cpp) |
 
-El actuador conserva el esqueleto: inicializa Serial a 115200 baudios y cede ejecución cada 10 ms. El servidor está pendiente. El sensor ya implementa el subplan, sin dependencias externas nuevas.
+Ambos firmware inicializan Serial a 115200 baudios y registran el arranque y el estado de red. El sensor muestra la configuración de pines, las distancias válidas enviadas y los errores de lectura; el actuador indica el estado de sus salidas y los patrones LED nuevos que recibe, evitando repetir el log durante los refrescos del servidor. También se muestran los fallos y reintentos de conexión WiFi/TCP. Abrir el monitor serie a 115200 baudios para verlos.
 
-El sensor incluye `config.h`, copia local de `include/config.h.example`, con credenciales, IPv4, GPIO y constantes. `.gitignore` excluye las configuraciones reales, las salidas de compilación y la copia local de herramientas utilizada para validación. El actuador todavía no incluye su configuración.
+Cada proyecto tiene su propia configuración `include/config.h`, copiada localmente desde `include/config.h.example`; contiene credenciales, IPv4, GPIO y constantes. `.gitignore` excluye las configuraciones reales, las salidas de compilación y la copia local de herramientas utilizada para validación.
 
 El protocolo existente permanece sin cambios. Las resistencias de 220 Ω por LED son una decisión de montaje registrada; todavía no se ha construido ni validado el circuito mediante este trabajo.
 
@@ -56,3 +56,14 @@ El muestreo se programa desde el inicio de la última medición mediante resta s
 La recepción conserva fragmentos entre iteraciones, procesa varias líneas y descarta líneas demasiado largas hasta LF. Lee como máximo 128 bytes por iteración para que un flujo continuo no monopolice el programa. Ver la gramática en [protocolo](protocol.md) y los diagramas de [clases](classes.md) y [secuencia](sequence.md).
 
 La medición y la conexión TCP tienen esperas acotadas. La escritura usa los reintentos internos de `WiFiClient` del framework; bajo congestión puede demorar más que el periodo nominal. La compilación no demuestra frecuencia ni latencia de red. No se añadió timeout por silencio del servidor: el protocolo permite que solo envíe `PERIOD` al registrar al sensor.
+
+## Actuador
+
+| Archivo | Responsabilidad |
+|---|---|
+| [main.cpp](../actuator/src/main.cpp) | Inicia Serial, los LEDs y el cliente; atiende comandos y actualización de parpadeo |
+| [led_controller.h](../actuator/include/led_controller.h) / [led_controller.cpp](../actuator/src/led_controller.cpp) | Validación GPIO, aplicación de patrones y parpadeo local no bloqueante |
+| [actuator_client.h](../actuator/include/actuator_client.h) / [actuator_client.cpp](../actuator/src/actuator_client.cpp) | WiFi/TCP, registro, recepción de comandos y watchdog |
+| [config.h.example](../actuator/include/config.h.example) | Parámetros centralizados; copiar a `config.h` local |
+
+El actuador inicia las salidas apagadas, se registra mediante `HELLO ACTUATOR` y actualiza los LEDs al recibir líneas `LED`. Si se pierde WiFi, TCP o se supera el timeout de comandos, apaga las salidas y espera la reconexión. El monitor serie muestra conexión, fallos y reintentos, además de los cambios de patrón (rojo, naranja y verde); no repite el mismo patrón en cada refresco del servidor. La salida serie física aún requiere verificación con la placa.

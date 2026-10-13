@@ -28,6 +28,8 @@ class ActuatorClient {
     uint32_t lastWifiAttemptMs_ = 0;
     uint32_t lastTcpAttemptMs_ = 0;
     uint32_t lastCommandMs_ = 0;
+    char lastPattern_[config::LED_COUNT + 1] = {};
+    bool hasCommand_ = false;
     char line_[config::MAX_LINE_BYTES] = {};
     size_t lineLength_ = 0;
     bool discardLine_ = false;
