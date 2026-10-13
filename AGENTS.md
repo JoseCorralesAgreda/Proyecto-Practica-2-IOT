@@ -45,7 +45,7 @@ Misma regla: lo más simple posible. Una carpeta por componente, una de document
 practica.md      enunciado (referencia, no se modifica)
 AGENTS.md        este archivo
 README.md        cómo ejecutar el proyecto (breve)
-report.md        informe técnico final
+informe.md        informe técnico final
 server/          código del servidor TCP
 sensor/          código del objeto con sensor ultrasónico
 actuator/        código del objeto con actuadores

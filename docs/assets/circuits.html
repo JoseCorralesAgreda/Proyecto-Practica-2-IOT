@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diseño de circuitos — Práctica 2</title>
+<style>
+  :root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px; background: var(--bg); color: var(--ink);
+    font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  main { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 36px 0 6px; padding-top: 20px; border-top: 1px solid var(--line); }
+  p.lead { color: var(--muted); margin: 0; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px; margin-top: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  }
+  svg { width: 100%; height: auto; display: block; }
+  table { border-collapse: collapse; width: 100%; margin-top: 14px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+  th { background: #f1f5f9; }
+  .note {
+    background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
+    border-radius: 10px; padding: 10px 14px; font-size: 14px; margin-top: 14px;
+  }
+  footer { color: var(--muted); font-size: 13px; margin-top: 28px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Diseño de circuitos</h1>
+  <p class="lead">Práctica 2 — Integración de Objetos Inteligentes con TCP/IP. Dos objetos inteligentes ESP32-WROOM-32: uno con sensor ultrasónico HC-SR04 y otro con tres LED.</p>
+
+  <h2>Objeto sensor — ESP32 + HC-SR04</h2>
+  <div class="card">
+    <svg viewBox="0 0 920 540" role="img" aria-label="Circuito del objeto sensor: ESP32 y módulo HC-SR04 conectados directamente">
+      <!-- ESP32 -->
+      <rect x="70" y="120" width="240" height="280" rx="16" fill="#0f172a"/>
+      <text x="190" y="158" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">ESP32-WROOM-32</text>
+      <text x="190" y="178" text-anchor="middle" fill="#94a3b8" font-size="12">DevKit · esp32doit-devkit-v1</text>
+
+      <!-- ESP pin labels -->
+      <g font-size="14" fill="#e2e8f0" text-anchor="end">
+        <text x="296" y="205">VIN (5 V)</text>
+        <text x="296" y="257">GPIO 18</text>
+        <text x="296" y="309">GPIO 19</text>
+        <text x="296" y="361">GND</text>
+      </g>
+      <!-- ESP pin pads -->
+      <g fill="#f59e0b" stroke="#b45309" stroke-width="1">
+        <rect x="303" y="193" width="14" height="14" rx="3"/>
+        <rect x="303" y="245" width="14" height="14" rx="3"/>
+        <rect x="303" y="297" width="14" height="14" rx="3"/>
+        <rect x="303" y="349" width="14" height="14" rx="3"/>
+      </g>
+
+      <!-- wires (direct, no resistors) -->
+      <line x1="317" y1="200" x2="583" y2="200" stroke="#ef4444" stroke-width="3"/>
+      <line x1="317" y1="252" x2="583" y2="252" stroke="#f59e0b" stroke-width="3"/>
+      <line x1="317" y1="304" x2="583" y2="304" stroke="#3b82f6" stroke-width="3"/>
+      <line x1="317" y1="356" x2="583" y2="356" stroke="#111827" stroke-width="3"/>
+
+      <!-- wire labels -->
+      <text x="450" y="190" text-anchor="middle" font-size="12.5" fill="#b91c1c">VCC · 5 V</text>
+      <text x="450" y="242" text-anchor="middle" font-size="12.5" fill="#b45309">TRIG ← GPIO 18</text>
+      <text x="450" y="294" text-anchor="middle" font-size="12.5" fill="#1d4ed8">ECHO → GPIO 19 · directo, sin resistencias</text>
+      <text x="450" y="346" text-anchor="middle" font-size="12.5" fill="#111827">GND común</text>
+
+      <!-- HC-SR04 -->
+      <rect x="590" y="150" width="270" height="250" rx="16" fill="#1f2937"/>
+      <text x="725" y="184" text-anchor="middle" fill="#f8fafc" font-size="16" font-weight="700">HC-SR04</text>
+      <text x="725" y="203" text-anchor="middle" fill="#94a3b8" font-size="11">sensor ultrasónico</text>
+      <circle cx="700" cy="285" r="28" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+      <circle cx="790" cy="285" r="28" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+
+      <!-- module pin labels -->
+      <g font-size="14" fill="#e2e8f0">
+        <text x="610" y="205">VCC</text>
+        <text x="610" y="257">TRIG</text>
+        <text x="610" y="309">ECHO</text>
+        <text x="610" y="361">GND</text>
+      </g>
+      <!-- module pin pads -->
+      <g fill="#f59e0b" stroke="#b45309" stroke-width="1">
+        <rect x="583" y="193" width="14" height="14" rx="3"/>
+        <rect x="583" y="245" width="14" height="14" rx="3"/>
+        <rect x="583" y="297" width="14" height="14" rx="3"/>
+        <rect x="583" y="349" width="14" height="14" rx="3"/>
+      </g>
+
+      <!-- note -->
+      <rect x="70" y="440" width="790" height="78" rx="12" fill="#f1f5f9" stroke="#cbd5e1"/>
+      <text x="90" y="470" font-size="13" fill="#0f172a">El ECHO del HC-SR04 se conecta de forma directa al GPIO del ESP32.</text>
+      <text x="90" y="490" font-size="13" fill="#0f172a">El equipo verificó experimentalmente que esto no daña componentes; en esta práctica no se usan resistencias.</text>
+      <text x="90" y="510" font-size="13" fill="#0f172a">El módulo se alimenta a 5 V (VIN) y comparte masa (GND) con la placa.</text>
+    </svg>
+    <table>
+      <tr><th>Pin del HC-SR04</th><th>Se conecta a</th></tr>
+      <tr><td>VCC</td><td>VIN (5 V) del ESP32</td></tr>
+      <tr><td>TRIG</td><td>GPIO 18</td></tr>
+      <tr><td>ECHO</td><td>GPIO 19 (conexión directa, sin resistencias)</td></tr>
+      <tr><td>GND</td><td>GND del ESP32</td></tr>
+    </table>
+  </div>
+
+  <h2>Objeto actuador — ESP32 + 3 LED</h2>
+  <div class="card">
+    <svg viewBox="0 0 920 580" role="img" aria-label="Circuito del objeto actuador: ESP32 y tres LED con resistencias de 220 ohmios">
+      <!-- ESP32 -->
+      <rect x="70" y="120" width="240" height="330" rx="16" fill="#0f172a"/>
+      <text x="190" y="158" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">ESP32-WROOM-32</text>
+      <text x="190" y="178" text-anchor="middle" fill="#94a3b8" font-size="12">DevKit · esp32doit-devkit-v1</text>
+
+      <!-- ESP pin labels -->
+      <g font-size="14" fill="#e2e8f0" text-anchor="end">
+        <text x="296" y="185">GPIO 25</text>
+        <text x="296" y="245">GPIO 26</text>
+        <text x="296" y="305">GPIO 27</text>
+        <text x="296" y="385">GND</text>
+      </g>
+      <!-- ESP pin pads -->
+      <g fill="#f59e0b" stroke="#b45309" stroke-width="1">
+        <rect x="303" y="173" width="14" height="14" rx="3"/>
+        <rect x="303" y="233" width="14" height="14" rx="3"/>
+        <rect x="303" y="293" width="14" height="14" rx="3"/>
+        <rect x="303" y="373" width="14" height="14" rx="3"/>
+      </g>
+
+      <!-- LED row: red (GPIO 25) -->
+      <text x="584" y="146" text-anchor="middle" font-size="13" fill="#b91c1c">LED rojo — GPIO 25</text>
+      <line x1="317" y1="180" x2="410" y2="180" stroke="#ef4444" stroke-width="3"/>
+      <rect x="410" y="166" width="96" height="28" rx="5" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <text x="458" y="185" text-anchor="middle" font-size="13" fill="#92400e">220 Ω</text>
+      <line x1="506" y1="180" x2="562" y2="180" stroke="#ef4444" stroke-width="3"/>
+      <circle cx="584" cy="180" r="22" fill="#ef4444" stroke="#334155" stroke-width="2"/>
+      <line x1="606" y1="164" x2="606" y2="196" stroke="#334155" stroke-width="3"/>
+      <line x1="606" y1="180" x2="800" y2="180" stroke="#ef4444" stroke-width="3"/>
+
+      <!-- LED row: orange (GPIO 26) -->
+      <text x="584" y="206" text-anchor="middle" font-size="13" fill="#c2410c">LED naranja — GPIO 26</text>
+      <line x1="317" y1="240" x2="410" y2="240" stroke="#f97316" stroke-width="3"/>
+      <rect x="410" y="226" width="96" height="28" rx="5" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <text x="458" y="245" text-anchor="middle" font-size="13" fill="#92400e">220 Ω</text>
+      <line x1="506" y1="240" x2="562" y2="240" stroke="#f97316" stroke-width="3"/>
+      <circle cx="584" cy="240" r="22" fill="#f97316" stroke="#334155" stroke-width="2"/>
+      <line x1="606" y1="224" x2="606" y2="256" stroke="#334155" stroke-width="3"/>
+      <line x1="606" y1="240" x2="800" y2="240" stroke="#f97316" stroke-width="3"/>
+
+      <!-- LED row: green (GPIO 27) -->
+      <text x="584" y="266" text-anchor="middle" font-size="13" fill="#15803d">LED verde — GPIO 27</text>
+      <line x1="317" y1="300" x2="410" y2="300" stroke="#22c55e" stroke-width="3"/>
+      <rect x="410" y="286" width="96" height="28" rx="5" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+      <text x="458" y="305" text-anchor="middle" font-size="13" fill="#92400e">220 Ω</text>
+      <line x1="506" y1="300" x2="562" y2="300" stroke="#22c55e" stroke-width="3"/>
+      <circle cx="584" cy="300" r="22" fill="#22c55e" stroke="#334155" stroke-width="2"/>
+      <line x1="606" y1="284" x2="606" y2="316" stroke="#334155" stroke-width="3"/>
+      <line x1="606" y1="300" x2="800" y2="300" stroke="#22c55e" stroke-width="3"/>
+
+      <!-- common ground bus -->
+      <line x1="800" y1="180" x2="800" y2="470" stroke="#111827" stroke-width="3"/>
+      <line x1="800" y1="470" x2="370" y2="470" stroke="#111827" stroke-width="3"/>
+      <line x1="370" y1="470" x2="370" y2="380" stroke="#111827" stroke-width="3"/>
+      <line x1="370" y1="380" x2="317" y2="380" stroke="#111827" stroke-width="3"/>
+      <text x="820" y="325" font-size="12.5" fill="#111827">GND</text>
+
+      <!-- note -->
+      <rect x="70" y="495" width="790" height="65" rx="12" fill="#f1f5f9" stroke="#cbd5e1"/>
+      <text x="90" y="522" font-size="13" fill="#0f172a">Tres LED activos a nivel alto: un GPIO en nivel alto enciende el LED correspondiente.</text>
+      <text x="90" y="542" font-size="13" fill="#0f172a">Una resistencia de 220 Ω en serie por LED y masa común con la placa.</text>
+    </svg>
+    <table>
+      <tr><th>LED</th><th>GPIO</th><th>Resistencia en serie</th><th>Conexión</th></tr>
+      <tr><td>Rojo</td><td>25</td><td>220 Ω</td><td>GPIO → R → ánodo; cátodo → GND</td></tr>
+      <tr><td>Naranja</td><td>26</td><td>220 Ω</td><td>GPIO → R → ánodo; cátodo → GND</td></tr>
+      <tr><td>Verde</td><td>27</td><td>220 Ω</td><td>GPIO → R → ánodo; cátodo → GND</td></tr>
+    </table>
+  </div>
+
+  <footer>Los GPIO de cada objeto se fijan en <code>include/config.h</code> de cada proyecto PlatformIO. El montaje físico fue probado y verificado.</footer>
+</main>
+</body>
+</html>

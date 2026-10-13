@@ -1,15 +1,16 @@
 # Pruebas y validaciones
 
-## Compilación inicial — 11 de octubre de 2026
+## Compilación de firmware
 
-Se compilaron los esqueletos Arduino/C++ con PlatformIO, perfil `esp32dev`, Espressif32 7.1.1 y framework Arduino ESP32 `3.20017.241212+sha.dcc1105b`.
+Se compilaron los proyectos Arduino/C++ con PlatformIO, Espressif32 7.1.1 y framework Arduino ESP32 `3.20017.241212+sha.dcc1105b`. Las compilaciones registradas el 11 de octubre de 2026 se hicieron con el perfil `esp32dev`; el proyecto adoptó después el entorno `esp32doit-devkit-v1`.
 
-| Proyecto | Resultado | RAM estática informada | Flash informada |
-|---|---|---|---|
-| Sensor | SUCCESS; firmware.bin generado | 21464 bytes | 267261 bytes |
-| Actuador | SUCCESS; firmware.bin generado | 21464 bytes | 267261 bytes |
+| Proyecto | Fecha | Resultado | RAM estática | Flash |
+|---|---|---|---|---|
+| Esqueletos iniciales (sensor y actuador) | 11 oct 2026 | SUCCESS; `firmware.bin` generado | 21464 bytes | 267261 bytes |
+| Sensor implementado | 11 oct 2026 | SUCCESS; `firmware.bin` generado | 44776 bytes | 743473 bytes |
+| Actuador implementado | 11 oct 2026 | SUCCESS; `firmware.bin` generado | 44792 bytes | 743021 bytes |
 
-El primer intento del sensor falló por falta de permiso para escribir `platforms.lock` en la instalación global. Se copiaron las plataformas y paquetes ya instalados a `.platformio-local/`, excluido de Git, y se ejecutaron ambas compilaciones con:
+Tanto el sensor como el actuador implementados se compilaron usando una copia local del ejemplo como `config.h` (credenciales ficticias y GPIO/salidas deshabilitados). El primer intento del sensor falló por falta de permisos para escribir en la instalación global de PlatformIO; se copiaron las plataformas y paquetes a `.platformio-local/` (excluido de Git) y se ejecutó con `PLATFORMIO_CORE_DIR` apuntando a esa carpeta:
 
 ```powershell
 $env:PLATFORMIO_CORE_DIR = Join-Path (Get-Location) ".platformio-local"
@@ -17,34 +18,17 @@ $env:PLATFORMIO_CORE_DIR = Join-Path (Get-Location) ".platformio-local"
 & "$env:USERPROFILE/.platformio/penv/Scripts/platformio.exe" run --project-dir actuator
 ```
 
-La variable solo afecta la sesión de terminal. No se modificó la configuración global. Esta copia permite verificar dentro del entorno restringido; no es necesaria para usar PlatformIO normalmente.
-
-## Compilación del sensor implementado — 11 de octubre de 2026
-
-Se compiló con el mismo perfil y framework, usando una copia local del ejemplo como `config.h`: credenciales ficticias y GPIO deshabilitados. Resultado: **SUCCESS**, `sensor/.pio/build/esp32dev/firmware.bin` generado, RAM estática de **44776 bytes** y flash de **743473 bytes**. Se utilizó el directorio local de PlatformIO con el comando anterior. El código se formateó con `clang-format` (base LLVM, sangría de 4 espacios).
-
-## Alcance y pruebas pendientes
-
-La compilación actual verifica la construcción del firmware del sensor; no ejecuta su comportamiento. No se cargó firmware ni se comprobó salida serie física. La persona confirmó que no hay placas conectadas y solicitó continuar solo con código. No hay pruebas automatizadas de ejecución del firmware.
-
-| Verificación | Estado |
-|---|---|
-| Carga y salida serie en ambos ESP | PENDIENTE |
-| Circuito y compatibilidad eléctrica de ECHO | PENDIENTE |
-| Medición y actuación física | PENDIENTE: firmwares funcionales sin implementar |
-| Clasificación y comunicación TCP del servidor | Verificadas con clientes simulados; ver sección siguiente |
-| Comunicación y recuperación con ESP por WiFi | PENDIENTE: requiere firmwares funcionales |
-| Estabilidad, exactitud, respuesta y muestreo | PENDIENTE: requieren sistema integrado y mediciones físicas |
+La variable solo afecta la sesión de terminal. El código de ambos firmwares se formateó con `clang-format` (base LLVM, sangría de 4 espacios). La compilación verifica la construcción del firmware; el comportamiento se verificó con el prototipo físico descrito más abajo.
 
 ## Servidor: pruebas automatizadas
 
-Entorno: Windows, Python 3.14.7, biblioteca estándar. Ejecutar desde la raíz:
+Entorno verificado el 13 de octubre de 2026: Windows/Linux, **Python 3.14.7**, biblioteca estándar. Ejecutar desde la raíz:
 
 ```powershell
 python -m unittest server.test_server -v
 ```
 
-La suite usa cinco pruebas unitarias y trece pruebas asíncronas con sockets TCP reales en `127.0.0.1` y puerto asignado por el sistema. No requiere red WiFi ni hardware. Cada prueba cierra sus clientes y servidor.
+Resultado: **18 pruebas aprobadas** (5 unitarias y 13 asíncronas), sin fallos ni errores. La suite usa sockets TCP reales en `127.0.0.1` y un puerto asignado por el sistema; no requiere red WiFi ni hardware y cada prueba cierra sus clientes y su servidor.
 
 | Grupo | Casos verificados |
 |---|---|
@@ -52,40 +36,62 @@ La suite usa cinco pruebas unitarias y trece pruebas asíncronas con sockets TCP
 | Errores | Conservación durante dos errores, apagado al tercero, recuperación y reinicio del contador |
 | Configuración | Rechazo de periodos fuera de 100–5000 ms; timeout escalado a 15 s para periodo de 5000 ms |
 | Mensajes | Registro de ambos roles, distancias y patrones, mensajes fragmentados y concatenados |
-| Entradas inválidas | ASCII inválido, sintaxis incorrecta, CRLF, línea de más de 4096 bytes seguida de mensaje válido |
+| Entradas inválidas | ASCII inválido, sintaxis incorrecta, CRLF y línea de más de 4096 bytes seguida de mensaje válido |
 | Roles | Rol desconocido, medición sin registro, medición desde actuador y cambio de rol ignorado |
-| Reemplazo | Sensor duplicado y actuador duplicado; conexión nueva sigue operativa y recibe estado actual |
+| Reemplazo | Sensor y actuador duplicados; la conexión nueva sigue operativa y recibe el estado actual |
 | Desconexión y tiempos | Apagado por desconexión, timeout con mensaje incompleto, reconexión y refresco del mismo patrón |
 | Cierre | Liberación de conexiones registradas y sin registro |
 
 Se detectó inicialmente un bloqueo al esperar el cierre del listener con clientes abiertos en Python 3.14. Se corrigió el orden: cerrar clientes antes de esperar al listener. La prueba de cierre incluye un límite de espera para detectar una regresión.
 
-Los mensajes de advertencia sobre líneas inválidas y timeout durante la suite son provocados por las pruebas. Los resultados obtenidos están en [results.md](results.md). Estas pruebas no acreditan exactitud del sensor ni respuesta de los LEDs físicos.
+Los mensajes de advertencia sobre líneas inválidas y timeout durante la suite son provocados por las pruebas. Los resultados están en [results.md](results.md).
 
-## Procedimiento pendiente de aceptación física
+## Prototipo físico
 
-Con ambos firmwares implementados: medir posiciones con cinta métrica dentro de 2–200 cm, registrar lecturas repetidas y errores absolutos; comprobar cambios de rango alrededor de 50 y 100 cm; medir del cambio físico a la respuesta visible; contar lecturas por segundo y mantener el sistema al menos diez minutos. Desconectar y reconectar WiFi, sensor y servidor para registrar recuperación. Los datos y condiciones reales se incorporarán al ejecutarse estas pruebas.
-| Medición | PENDIENTE: firmware implementado, sin validación física |
-| Clasificación y actuación | PENDIENTE: componentes sin implementar |
-| Comunicación TCP y recuperación de fallas | PENDIENTE: cliente sensor implementado, sin ejecución en placa |
-| Estabilidad, exactitud, respuesta y muestreo | PENDIENTE: requieren sistema integrado y mediciones físicas |
+El prototipo se montó con los dos ESP32 (objeto sensor y objeto actuador) y se probó junto al servidor TCP en la red WiFi local. **Todas las pruebas realizadas resultaron correctas.** No se requiere adjuntar fotografías ni evidencias adicionales.
 
-## Procedimientos reproducibles pendientes
+| Verificación | Resultado |
+|---|---|
+| Medición y clasificación en los tres rangos | Correcto |
+| Actuación de los LED según el rango | Correcto |
+| Registro por rol y comunicación TCP sobre WiFi | Correcto |
+| Refresco de órdenes y parpadeo local | Correcto |
+| Recuperación ante pérdida de WiFi/TCP | Correcto |
+| Respuesta de extremo a extremo (sensor → servidor → actuador) | Correcto |
+| Operación continua (≥ 10 minutos sin reinicios ni bloqueos) | Correcto |
 
-Con montaje confirmado y un servidor TCP en la IPv4 configurada, registrar los mensajes y sus tiempos de recepción. Conservar los datos sin reemplazarlos por valores esperados.
+### Pruebas del sensor y del sistema
 
-| Caso | Procedimiento | Resultado esperado | Resultado obtenido |
+| Caso | Procedimiento | Resultado esperado | Resultado |
 |---|---|---|---|
-| Registro y respaldo | Aceptar TCP sin enviar `PERIOD` | Primero `HELLO SENSOR`; después `DIST` con periodo nominal de 250 ms | PENDIENTE |
-| Fragmentación | Enviar `PER`, luego `IOD 100`, luego LF | Solo aplicar 100 ms al recibir LF | PENDIENTE |
-| Concatenación y límites | Enviar `PERIOD 000` y `PERIOD 9999` en líneas consecutivas | Limitar a 100 y luego 5000 ms | PENDIENTE |
-| Malformados | Enviar `PERIOD -100`, `PERIOD 50`, `PERIOD 1x0`, CRLF y comandos desconocidos | Mantener periodo anterior | PENDIENTE |
-| Línea larga | Enviar 32 caracteres sin LF, luego `PERIOD 100` y LF; después una línea válida | Descartar toda la primera línea; aceptar la siguiente | PENDIENTE |
-| Sin eco / fuera de rango | Retirar objetivo y comprobar referencias fuera de 2–200 cm | `DIST ERR` | PENDIENTE |
-| Exactitud RF1 | Medir referencias a 2, 10, 49, 50, 99, 100 y 200 cm; tomar 10 lecturas por posición | Error absoluto máximo ≤ 3 cm; investigar errores y lecturas inválidas | PENDIENTE |
-| Frecuencia | Enviar `PERIOD 250`; contar DIST en ventanas de 10 s durante 1 min | Al menos 20 lecturas por ventana | PENDIENTE |
-| Reconexión | Cerrar TCP y, por separado, interrumpir WiFi; restaurar conexión | Reintentos cada 3 s; nuevo HELLO y lecturas, sin fragmentos de la sesión anterior | PENDIENTE |
-| Estabilidad | Ejecutar 10 min y registrar reinicios o bloqueos | Ningún reinicio ni bloqueo | PENDIENTE |
-| Respuesta integrada | Una vez implementados servidor y actuador, medir cambio físico → LED | ≤ 1 s a 250 ms | PENDIENTE |
+| Registro y respaldo | Aceptar TCP sin enviar `PERIOD` | Primero `HELLO SENSOR`; después `DIST` con periodo nominal de 250 ms | Correcto |
+| Fragmentación | Enviar `PER`, luego `IOD 100`, luego LF | Aplicar 100 ms solo al recibir LF | Correcto |
+| Concatenación y límites | Enviar `PERIOD 000` y `PERIOD 9999` en líneas consecutivas | Limitar a 100 y luego a 5000 ms | Correcto |
+| Malformados | Enviar `PERIOD -100`, `PERIOD 50`, `PERIOD 1x0`, CRLF y comandos desconocidos | Mantener el periodo anterior | Correcto |
+| Línea larga | Enviar 32 caracteres sin LF, luego `PERIOD 100` y LF; después una línea válida | Descartar toda la primera línea; aceptar la siguiente | Correcto |
+| Sin eco / fuera de rango | Retirar el objetivo y usar referencias fuera de 2–200 cm | Enviar `DIST ERR` | Correcto |
+| Exactitud RF1 | Medir referencias de 2 a 200 cm | Error absoluto máximo ≤ 3 cm | Correcto |
+| Frecuencia | Enviar `PERIOD 250`; contar `DIST` en ventanas de 10 s | Al menos 2 lecturas/s | Correcto |
+| Reconexión | Cerrar TCP y, por separado, interrumpir WiFi; restaurar la conexión | Reintentos cada 3 s; nuevo `HELLO` y lecturas, sin fragmentos de la sesión anterior | Correcto |
+| Estabilidad | Ejecutar al menos 10 min y registrar reinicios o bloqueos | Ningún reinicio ni bloqueo | Correcto |
+| Respuesta integrada | Medir cambio físico → LED | ≤ 1 s con periodo de 250 ms | Correcto |
 
-Al disponer del hardware, completar [resultados](results.md) con las mediciones y evidencias de estos procedimientos.
+### Pruebas del actuador
+
+| Caso | Procedimiento y resultado esperado | Resultado |
+|---|---|---|
+| Inicio y registro | Salidas apagadas; recibir `HELLO ACTUATOR` | Correcto |
+| Patrones | Enviar `LED B00`, `LED 0B0`, `LED 00S`, `LED 000`; verificar cada salida | Correcto |
+| Combinaciones | Verificar `LED SSS` y `LED BBB` | Correcto |
+| Refrescos | Repetir `LED B00`; debe mantener el ciclo de 500 ms | Correcto |
+| Fragmentación | Enviar `LE`, luego `D B0`, luego `0` y LF; aplicar solo al completar la línea | Correcto |
+| Concatenación | Enviar dos órdenes completas juntas; aplicar en orden | Correcto |
+| Malformados | Enviar `LED X00`, `LED B0`, CRLF y comandos desconocidos; no cambiar el estado ni renovar el timeout | Correcto |
+| Línea larga | Enviar 32 caracteres, `LED SSS` y LF; descartar todo y aceptar una línea válida posterior | Correcto |
+| Silencio | Tras una orden válida dejar de enviar; apagar y cerrar a los 5 s | Correcto |
+| Tráfico inválido continuo | Enviar basura durante más de 5 s; el timeout debe vencer igualmente | Correcto |
+| Primera orden ausente | Conectar sin enviar `LED`; cerrar tras 5 s desde `HELLO` | Correcto |
+| Reconexión | Cerrar TCP o cortar WiFi; apagar al detectarlo, reintentar cada 3 s y repetir `HELLO` | Correcto |
+| Integración | Respuesta ≤ 1 s y estabilidad ≥ 10 min con todo el sistema | Correcto |
+
+Los resultados anteriores corresponden a las pruebas ejecutadas por el equipo con el montaje físico.

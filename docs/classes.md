@@ -1,4 +1,6 @@
-# Clases implementadas
+# Diagrama de clases
+
+El sistema usa pocas clases, cada una con una responsabilidad evidente. El servidor concentra la clasificación; cada ESP32 separa la lógica del dispositivo (medición o LED) de la comunicación de red.
 
 ```mermaid
 classDiagram
@@ -6,8 +8,9 @@ classDiagram
         +str host
         +int port
         +int period_ms
-        +dict clients
         +float sensor_timeout
+        +dict clients
+        +DistanceController controller
         +start()
         +serve_forever()
         +close()
@@ -18,30 +21,46 @@ classDiagram
         +update(distance_cm) str
         +reset()
     }
-    TcpServer *-- DistanceController : controla
-```
-
-`TcpServer` posee un `DistanceController`. La primera clase gestiona conexiones y tiempos; la segunda clasifica lecturas sin conocer sockets. Las operaciones públicas de `TcpServer` son asíncronas. `main.py` compone y ejecuta el servidor; `config.py` concentra constantes.
-
-Fuentes: [TcpServer](../server/tcp_server.py) y [DistanceController](../server/distance_controller.py). Los ESP todavía no tienen clases de aplicación implementadas.
     class UltrasonicSensor {
         -bool ready_
-        +begin() void
-        +readDistance(float &distanceCm) bool
+        +begin()
+        +readDistance(distanceCm) bool
     }
     class SensorClient {
+        -UltrasonicSensor& sensor_
         -WiFiClient socket_
-        -uint32_t periodMs_
-        -bool registered_
-        +SensorClient(UltrasonicSensor &sensor)
-        +begin() void
-        +update() void
-        -receiveCommands() void
-        -applyCommand() void
-        -sendLine(const char *line) bool
-        -disconnect() void
+        +begin()
+        +update()
     }
-    SensorClient --> UltrasonicSensor : usa una referencia
+    class LedController {
+        -bool ready_
+        -char states_
+        +begin()
+        +setPattern(pattern, now)
+        +update(now)
+        +turnOff()
+    }
+    class ActuatorClient {
+        -LedController& leds_
+        -WiFiClient socket_
+        +begin()
+        +update()
+    }
+    TcpServer *-- DistanceController
+    SensorClient --> UltrasonicSensor
+    ActuatorClient --> LedController
 ```
 
-`main.cpp` posee ambas instancias. El cliente administra comunicación y temporización; el sensor administra GPIO y conversión. Servidor y actuador todavía no tienen clases implementadas.
+## Responsabilidades
+
+- **Servidor** (`server/`): `TcpServer` gestiona conexiones, registro por rol, encuadre de líneas TCP, envío de órdenes y timeouts; `DistanceController` clasifica lecturas y tolera errores sin conocer sockets. `TcpServer` posee un `DistanceController`.
+- **Sensor** (`sensor/`): `UltrasonicSensor` administra GPIO, disparo y conversión; `SensorClient` administra WiFi/TCP, registro, `PERIOD` y envío periódico. `SensorClient` usa una referencia a `UltrasonicSensor`.
+- **Actuador** (`actuator/`): `LedController` aplica patrones y genera el parpadeo local no bloqueante; `ActuatorClient` administra WiFi/TCP, registro, recepción de órdenes y el watchdog de 5 s. `ActuatorClient` usa una referencia a `LedController`.
+
+En cada firmware, `main.cpp` compone las dos clases (una instancia de cada una) e implementa `setup()` y `loop()`. Los parámetros se centralizan en `server/config.py` y en `include/config.h` de cada proyecto.
+
+## Fuentes
+
+- Servidor: [TcpServer](../server/tcp_server.py), [DistanceController](../server/distance_controller.py), [main.py](../server/main.py), [config.py](../server/config.py).
+- Sensor: [UltrasonicSensor](../sensor/src/ultrasonic_sensor.cpp), [SensorClient](../sensor/src/sensor_client.cpp), [main.cpp](../sensor/src/main.cpp).
+- Actuador: [LedController](../actuator/src/led_controller.cpp), [ActuatorClient](../actuator/src/actuator_client.cpp), [main.cpp](../actuator/src/main.cpp).
